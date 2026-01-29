@@ -15,7 +15,10 @@ class ReminderOut(BaseModel):
     message: str
     phone: str
     scheduled_at_utc: datetime
+    timezone: str
     status: str
+    error: str | None = None
+    created_at: datetime
 
     class Config:
         orm_mode = True

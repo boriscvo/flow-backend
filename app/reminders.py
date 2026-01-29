@@ -41,6 +41,7 @@ def create_reminder(data: ReminderCreate):
         message=data.message,
         phone=phone_e164,
         scheduled_at_utc=scheduled_utc,
+        timezone=data.timezone,
         status="scheduled",
     )
     db.add(reminder)
@@ -49,3 +50,14 @@ def create_reminder(data: ReminderCreate):
     db.close()
 
     return reminder
+
+@router.get("", response_model=list[ReminderOut])
+def list_reminders():
+    db = SessionLocal()
+    reminders = (
+        db.query(Reminder)
+        .order_by(Reminder.scheduled_at_utc.asc())
+        .all()
+    )
+    db.close()
+    return reminders

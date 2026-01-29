@@ -15,3 +15,5 @@ class Reminder(Base):
     status = Column(String, default="scheduled")
     error = Column(String, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    timezone = Column(String, nullable=False)
+
