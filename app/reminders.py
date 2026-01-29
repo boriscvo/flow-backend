@@ -49,7 +49,18 @@ def create_reminder(data: ReminderCreate):
     db.refresh(reminder)
     db.close()
 
-    return reminder
+    return ReminderOut(
+        id=reminder.id,
+        title=reminder.title,
+        message=reminder.message,
+        phoneNumber=f"****{reminder.phone[-4:]}",
+        scheduledAt=reminder.scheduled_at_utc,
+        timezone=reminder.timezone,
+        status=reminder.status,
+        error=reminder.error,
+        createdAt=reminder.created_at,
+    )
+
 
 @router.get("", response_model=list[ReminderOut])
 def list_reminders():
@@ -60,4 +71,18 @@ def list_reminders():
         .all()
     )
     db.close()
-    return reminders
+
+    return [
+        ReminderOut(
+            id=r.id,
+            title=r.title,
+            message=r.message,
+            phoneNumber=f"****{r.phone[-4:]}",
+            scheduledAt=r.scheduled_at_utc,
+            timezone=r.timezone,
+            status=r.status,
+            error=r.error,
+            createdAt=r.created_at,
+        )
+        for r in reminders
+    ]
