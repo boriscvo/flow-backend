@@ -5,7 +5,7 @@ import phonenumbers
 
 from .db import SessionLocal
 from .models import Reminder
-from .schemas import ReminderCreate, ReminderOut
+from .schemas import ReminderCreate, ReminderOut, ReminderDetailsOut
 
 router = APIRouter(prefix="/reminders")
 
@@ -15,7 +15,7 @@ def create_reminder(data: ReminderCreate):
         tz = pytz.timezone(data.timezone)
         local_dt = datetime.strptime(
             f"{data.scheduledAtDate} {data.scheduledAtTime}",
-            "%Y-%m-%d %H:%M"
+            "%Y-%m-%d %H:%M",
         )
         local_dt = tz.localize(local_dt)
         scheduled_utc = local_dt.astimezone(pytz.utc)
@@ -57,19 +57,14 @@ def create_reminder(data: ReminderCreate):
         scheduledAt=reminder.scheduled_at_utc,
         timezone=reminder.timezone,
         status=reminder.status,
-        error=reminder.error,
-        createdAt=reminder.created_at,
+        snoozeCount=reminder.snooze_count,
     )
 
 
 @router.get("", response_model=list[ReminderOut])
 def list_reminders():
     db = SessionLocal()
-    reminders = (
-        db.query(Reminder)
-        .order_by(Reminder.scheduled_at_utc.asc())
-        .all()
-    )
+    reminders = db.query(Reminder).order_by(Reminder.scheduled_at_utc.asc()).all()
     db.close()
 
     return [
@@ -81,8 +76,44 @@ def list_reminders():
             scheduledAt=r.scheduled_at_utc,
             timezone=r.timezone,
             status=r.status,
-            error=r.error,
-            createdAt=r.created_at,
+            snoozeCount=r.snooze_count,
         )
         for r in reminders
     ]
+
+
+@router.get("/{reminder_id}", response_model=ReminderDetailsOut)
+def get_reminder(reminder_id: str):
+    db = SessionLocal()
+    reminder = db.query(Reminder).filter(Reminder.id == reminder_id).first()
+    db.close()
+
+    if not reminder:
+        raise HTTPException(status_code=404, detail="Reminder not found")
+
+    return ReminderDetailsOut(
+        id=reminder.id,
+        title=reminder.title,
+        message=reminder.message,
+        phoneNumber=f"****{reminder.phone[-4:]}",
+        scheduledAt=reminder.scheduled_at_utc,
+        timezone=reminder.timezone,
+        status=reminder.status,
+        snoozeCount=reminder.snooze_count,
+        createdAt=reminder.created_at,
+        failureReason=reminder.error,
+    )
+
+
+@router.delete("/{reminder_id}", status_code=204)
+def delete_reminder(reminder_id: str):
+    db = SessionLocal()
+    reminder = db.query(Reminder).filter(Reminder.id == reminder_id).first()
+
+    if not reminder:
+        db.close()
+        raise HTTPException(status_code=404, detail="Reminder not found")
+
+    db.delete(reminder)
+    db.commit()
+    db.close()

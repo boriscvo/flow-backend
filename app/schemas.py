@@ -10,12 +10,16 @@ class ReminderCreate(BaseModel):
     timezone: str
 
 class ReminderOut(BaseModel):
-    id: int
+    id: str
     title: str
     message: str
     phoneNumber: str
     scheduledAt: datetime
     timezone: str
     status: str
-    error: str | None = None
+    snoozeCount: int | None = None
+
+class ReminderDetailsOut(ReminderOut):
     createdAt: datetime
+    failureReason: str | None = None
+
