@@ -1,10 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-app = FastAPI()
-
+from .reminders import router as reminders_router
 from .db import engine
 from .models import Base
+
+app = FastAPI()
+app.include_router(reminders_router)
 
 Base.metadata.create_all(bind=engine)
 
