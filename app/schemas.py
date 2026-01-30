@@ -1,6 +1,14 @@
 from pydantic import BaseModel
 from datetime import datetime
 
+class ReminderUpdate(BaseModel):
+    title: str
+    message: str
+    phoneNumber: str
+    scheduledAtDate: str
+    scheduledAtTime: str
+    timezone: str
+
 class ReminderCreate(BaseModel):
     title: str
     message: str
