@@ -34,10 +34,10 @@ pip install -r requirements.txt
 
 ## The top level structure looks like this:
 
-**main.py** - FastAPI app entrypoint
-**database.py** - DB engine & session
-**models.py** - SQLAlchemy models
-**schemas.py** - Pydantic schemas
-**reminders.py** - API routes and DB operations for this particular task
-**vapi_service.py** - Service wrapper for triggering outbound phone calls via Vapi
-**worker.py** - Background scheduler loop
+- main.py - FastAPI app entrypoint
+- database.py - DB engine & session
+- models.py - SQLAlchemy models
+- schemas.py - Pydantic schemas
+- reminders.py - API routes and DB operations for this particular task
+- vapi_service.py - Service wrapper for triggering outbound phone calls via Vapi
+- worker.py - Background scheduler loop
