@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from datetime import datetime
+from datetime import datetime, timezone as dt_timezone
 import pytz
 import phonenumbers
 
@@ -8,6 +8,9 @@ from .models import Reminder
 from .schemas import ReminderCreate, ReminderOut, ReminderDetailsOut
 
 router = APIRouter(prefix="/reminders")
+
+def as_utc(dt: datetime) -> datetime:
+    return dt.replace(tzinfo=dt_timezone.utc)
 
 @router.post("", response_model=ReminderOut)
 def create_reminder(data: ReminderCreate):
@@ -54,7 +57,7 @@ def create_reminder(data: ReminderCreate):
         title=reminder.title,
         message=reminder.message,
         phoneNumber=f"****{reminder.phone[-4:]}",
-        scheduledAt=reminder.scheduled_at_utc,
+        scheduledAt=as_utc(reminder.scheduled_at_utc),
         timezone=reminder.timezone,
         status=reminder.status,
         snoozeCount=reminder.snooze_count,
@@ -73,7 +76,7 @@ def list_reminders():
             title=r.title,
             message=r.message,
             phoneNumber=f"****{r.phone[-4:]}",
-            scheduledAt=r.scheduled_at_utc,
+            scheduledAt=as_utc(r.scheduled_at_utc),
             timezone=r.timezone,
             status=r.status,
             snoozeCount=r.snooze_count,
@@ -96,11 +99,11 @@ def get_reminder(reminder_id: str):
         title=reminder.title,
         message=reminder.message,
         phoneNumber=f"****{reminder.phone[-4:]}",
-        scheduledAt=reminder.scheduled_at_utc,
+        scheduledAt=as_utc(reminder.scheduled_at_utc),
         timezone=reminder.timezone,
         status=reminder.status,
         snoozeCount=reminder.snooze_count,
-        createdAt=reminder.created_at,
+        createdAt=as_utc(reminder.created_at),
         failureReason=reminder.error,
     )
 
