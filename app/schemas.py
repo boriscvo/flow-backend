@@ -23,3 +23,9 @@ class ReminderDetailsOut(ReminderOut):
     createdAt: datetime
     failureReason: str | None = None
 
+class ReminderStatsOut(BaseModel):
+    totalReminders: int
+    todayReminders: int
+    failedReminders: int
+    nextReminderAt: datetime | None
+    timezone: str | None

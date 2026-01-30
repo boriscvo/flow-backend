@@ -2,15 +2,70 @@ from fastapi import APIRouter, HTTPException
 from datetime import datetime, timezone as dt_timezone
 import pytz
 import phonenumbers
-
+from sqlalchemy import func
+from datetime import datetime, timedelta
+import pytz
 from .db import SessionLocal
 from .models import Reminder
-from .schemas import ReminderCreate, ReminderOut, ReminderDetailsOut
+from .schemas import ReminderCreate, ReminderOut, ReminderDetailsOut, ReminderStatsOut
 
 router = APIRouter(prefix="/reminders")
 
 def as_utc(dt: datetime) -> datetime:
     return dt.replace(tzinfo=dt_timezone.utc)
+
+@router.get("/stats", response_model=ReminderStatsOut)
+def get_reminder_stats():
+    db = SessionLocal()
+
+    now_utc = datetime.now(dt_timezone.utc)
+
+    total_reminders = db.query(func.count(Reminder.id)).scalar()
+
+    failed_reminders = (
+        db.query(func.count(Reminder.id))
+        .filter(Reminder.status == "failed")
+        .scalar()
+    )
+
+    start_of_today = now_utc.replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    end_of_today = start_of_today + timedelta(days=1)
+
+    today_reminders = (
+        db.query(func.count(Reminder.id))
+        .filter(
+            Reminder.scheduled_at_utc >= start_of_today,
+            Reminder.scheduled_at_utc < end_of_today,
+            Reminder.status == "scheduled",
+        )
+        .scalar()
+    )
+
+    next_reminder = (
+        db.query(Reminder)
+        .filter(
+            Reminder.scheduled_at_utc > now_utc,
+            Reminder.status == "scheduled",
+        )
+        .order_by(Reminder.scheduled_at_utc.asc())
+        .first()
+    )
+
+    db.close()
+
+    return {
+        "totalReminders": total_reminders,
+        "todayReminders": today_reminders,
+        "failedReminders": failed_reminders,
+        "timezone": next_reminder.timezone if next_reminder else None,
+        "nextReminderAt": (
+            next_reminder.scheduled_at_utc.replace(tzinfo=pytz.utc)
+            if next_reminder
+            else None
+        ),
+    }
 
 @router.post("", response_model=ReminderOut)
 def create_reminder(data: ReminderCreate):
@@ -25,7 +80,7 @@ def create_reminder(data: ReminderCreate):
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid date or time or timezone")
 
-    if scheduled_utc <= datetime.utcnow().replace(tzinfo=pytz.utc):
+    if scheduled_utc <= datetime.now(dt_timezone.utc).replace(tzinfo=pytz.utc):
         raise HTTPException(status_code=400, detail="Reminder must be in future")
 
     try:

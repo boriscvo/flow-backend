@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 import uuid
 from sqlalchemy import Column, Integer, String, DateTime
 from .db import Base
+from pydantic import BaseModel
 
 class Reminder(Base):
     __tablename__ = "reminders"
@@ -21,3 +22,9 @@ class Reminder(Base):
     error = Column(String, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, nullable=True)
+
+class ReminderStatsOut(BaseModel):
+    totalReminders: int
+    todayReminders: int
+    failedReminders: int
+    nextReminderAt: datetime | None
