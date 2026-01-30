@@ -1,13 +1,17 @@
 from fastapi import APIRouter, HTTPException
-from datetime import datetime, timezone as dt_timezone
+from datetime import datetime, timezone as dt_timezone, timedelta
 import pytz
 import phonenumbers
 from sqlalchemy import func
-from datetime import datetime, timedelta
-import pytz
 from .db import SessionLocal
 from .models import Reminder
-from .schemas import ReminderCreate, ReminderOut, ReminderDetailsOut, ReminderStatsOut, ReminderUpdate
+from .schemas import (
+    ReminderCreate,
+    ReminderOut,
+    ReminderDetailsOut,
+    ReminderStatsOut,
+    ReminderUpdate,
+)
 
 router = APIRouter(prefix="/reminders")
 
@@ -17,20 +21,16 @@ def as_utc(dt: datetime) -> datetime:
 @router.get("/stats", response_model=ReminderStatsOut)
 def get_reminder_stats():
     db = SessionLocal()
-
     now_utc = datetime.now(dt_timezone.utc)
 
     total_reminders = db.query(func.count(Reminder.id)).scalar()
-
     failed_reminders = (
         db.query(func.count(Reminder.id))
         .filter(Reminder.status == "failed")
         .scalar()
     )
 
-    start_of_today = now_utc.replace(
-        hour=0, minute=0, second=0, microsecond=0
-    )
+    start_of_today = now_utc.replace(hour=0, minute=0, second=0, microsecond=0)
     end_of_today = start_of_today + timedelta(days=1)
 
     today_reminders = (
@@ -176,6 +176,34 @@ def update_reminder(reminder_id: str, data: ReminderUpdate):
         snoozeCount=reminder.snooze_count,
     )
 
+@router.post("/{reminder_id}/snooze", response_model=ReminderOut)
+def snooze_reminder(reminder_id: str):
+    db = SessionLocal()
+    reminder = db.query(Reminder).filter(Reminder.id == reminder_id).first()
+
+    if not reminder:
+        db.close()
+        raise HTTPException(status_code=404, detail="Reminder not found")
+
+    reminder.scheduled_at_utc += timedelta(minutes=5)
+    reminder.snooze_count += 1
+    reminder.status = "scheduled"
+    reminder.updated_at = datetime.now(dt_timezone.utc)
+
+    db.commit()
+    db.refresh(reminder)
+    db.close()
+
+    return ReminderOut(
+        id=reminder.id,
+        title=reminder.title,
+        message=reminder.message,
+        phoneNumber=f"****{reminder.phone[-4:]}",
+        scheduledAt=as_utc(reminder.scheduled_at_utc),
+        timezone=reminder.timezone,
+        status=reminder.status,
+        snoozeCount=reminder.snooze_count,
+    )
 
 @router.get("", response_model=list[ReminderOut])
 def list_reminders():
